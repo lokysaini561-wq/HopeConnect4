@@ -1,0 +1,169 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Heart, Mail, Lock, User } from "lucide-react";
+
+function Model({ show, onClose, orphanageId }) {
+  const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (!show) return null;
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch("http://localhost:3200/adlogin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (data.success) {
+      if (data.token) localStorage.setItem("token", data.token);
+      setTimeout(() => { onClose(); navigate(`/donate/${orphanageId}`); }, 500);
+    } else {
+      setMsg("Invalid Email or Password ❌");
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch("http://localhost:3200/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password })
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (data.success) {
+      setMsg("Registration Successful 🎉 Please login");
+      setIsRegister(false);
+    } else {
+      setMsg("Registration Failed ❌");
+    }
+  };
+
+  return (
+    <div className="modal fade show d-block premium-modal-backdrop"
+      tabIndex="-1"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="premium-modal modal-content border-0" style={{ borderRadius: "var(--hc-radius-xl)" }}>
+          
+          {/* Header */}
+          <div className="text-center pt-4 pb-2 px-4 position-relative">
+            <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
+              <div className="brand-logo" style={{ width: 36, height: 36, borderRadius: 10 }}>
+                <Heart size={16} fill="currentColor" />
+              </div>
+              <span style={{ fontFamily: "var(--hc-font-heading)", fontWeight: 800, fontSize: "1.2rem" }}>
+                HopeConnect
+              </span>
+            </div>
+            <h5 style={{ fontFamily: "var(--hc-font-heading)", fontWeight: 700, color: "var(--hc-navy)" }}>
+              {isRegister ? "Create Account" : "Welcome Back"}
+            </h5>
+            <p className="small" style={{ color: "var(--hc-text-secondary)" }}>
+              {isRegister ? "Join us in making a difference" : "Login to continue your donation"}
+            </p>
+            <button
+              type="button"
+              className="btn-close position-absolute end-0 top-0 m-3"
+              onClick={onClose}
+            ></button>
+          </div>
+
+          {/* Body */}
+          <div className="px-4 pb-4">
+            {msg && (
+              <div className="alert py-2 text-center" style={{
+                background: msg.includes("❌") ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)",
+                color: msg.includes("❌") ? "#dc2626" : "#16a34a",
+                border: "none",
+                borderRadius: "var(--hc-radius)",
+                fontSize: "0.9rem",
+                fontWeight: 500
+              }}>
+                {msg}
+              </div>
+            )}
+
+            <form onSubmit={isRegister ? handleRegister : handleLogin}>
+              {isRegister && (
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small text-secondary">Full Name</label>
+                  <div className="input-group">
+                    <span className="input-group-text border-0" style={{ background: "var(--hc-surface-alt)", borderRadius: "var(--hc-radius) 0 0 var(--hc-radius)" }}>
+                      <User size={16} style={{ color: "var(--hc-text-muted)" }} />
+                    </span>
+                    <input type="text" className="premium-input form-control" style={{ borderRadius: "0 var(--hc-radius) var(--hc-radius) 0" }}
+                      value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your name" required />
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-3">
+                <label className="form-label fw-semibold small text-secondary">Email</label>
+                <div className="input-group">
+                  <span className="input-group-text border-0" style={{ background: "var(--hc-surface-alt)", borderRadius: "var(--hc-radius) 0 0 var(--hc-radius)" }}>
+                    <Mail size={16} style={{ color: "var(--hc-text-muted)" }} />
+                  </span>
+                  <input type="email" className="premium-input form-control" style={{ borderRadius: "0 var(--hc-radius) var(--hc-radius) 0" }}
+                    value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label fw-semibold small text-secondary">Password</label>
+                <div className="input-group">
+                  <span className="input-group-text border-0" style={{ background: "var(--hc-surface-alt)", borderRadius: "var(--hc-radius) 0 0 var(--hc-radius)" }}>
+                    <Lock size={16} style={{ color: "var(--hc-text-muted)" }} />
+                  </span>
+                  <input type="password" className="premium-input form-control" style={{ borderRadius: "0 var(--hc-radius) var(--hc-radius) 0" }}
+                    value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+                </div>
+              </div>
+
+              <button type="submit" className="gradient-btn w-100" disabled={loading}
+                style={{ padding: "12px", fontSize: "0.95rem" }}>
+                {loading ? (
+                  <span className="d-flex align-items-center justify-content-center gap-2">
+                    <div className="spinner-border spinner-border-sm" role="status"></div>
+                    {isRegister ? "Creating Account..." : "Signing In..."}
+                  </span>
+                ) : (
+                  isRegister ? "Create Account" : "Sign In"
+                )}
+              </button>
+            </form>
+
+            <div className="auth-divider mt-3">
+              <span className="small" style={{ color: "var(--hc-text-muted)" }}>or</span>
+            </div>
+
+            <div className="text-center">
+              <small style={{ color: "var(--hc-text-secondary)" }}>
+                {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
+                <span
+                  style={{ color: "var(--hc-primary)", fontWeight: 600, cursor: "pointer" }}
+                  onClick={() => { setMsg(""); setIsRegister(!isRegister); }}
+                >
+                  {isRegister ? "Sign In" : "Create Account"}
+                </span>
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Model;
