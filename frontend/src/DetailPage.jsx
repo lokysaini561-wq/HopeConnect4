@@ -4,6 +4,7 @@ import { MapPin, Users, Clock, ArrowLeft, AlertTriangle, Mail, Phone, CheckCircl
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import Model from "./Model";
+import { DUMMY_ORPHANAGES, getDemoImage, isDemoOrphanage } from "./dummyData";
 import "./App.css";
 
 function DetailPage() {
@@ -12,25 +13,61 @@ function DetailPage() {
   const [orphanage, setOrphanage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [usingDummy, setUsingDummy] = useState(false);
 
   const handleDonateClick = async () => {
-    const res = await fetch("http://localhost:3200/check-adlogin", {
-      credentials: "include"
-    });
-    const data = await res.json();
-    if (data.loggedIn) {
-      navigate(`/donate/${orphanage._id}`);
-    } else {
+    if (usingDummy) {
+      setShowLoginModal(true);
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:3200/check-adlogin", {
+        credentials: "include"
+      });
+      const data = await res.json();
+      if (data.loggedIn) {
+        navigate(`/donate/${orphanage._id}`);
+      } else {
+        setShowLoginModal(true);
+      }
+    } catch {
       setShowLoginModal(true);
     }
   };
 
   useEffect(() => {
+    // Check if it's a demo orphanage
+    if (id?.startsWith("demo-")) {
+      const demoOrph = DUMMY_ORPHANAGES.find(o => o._id === id);
+      if (demoOrph) {
+        setOrphanage(demoOrph);
+        setUsingDummy(true);
+      }
+      setLoading(false);
+      return;
+    }
+
     fetch(`http://localhost:3200/orphanage/${id}`)
       .then(res => res.json())
       .then(data => { setOrphanage(data); setLoading(false); })
-      .catch(err => { console.error(err); navigate("/location"); });
+      .catch(err => {
+        console.error(err);
+        // Try to find in dummy data as absolute fallback
+        const demoOrph = DUMMY_ORPHANAGES[0];
+        setOrphanage(demoOrph);
+        setUsingDummy(true);
+        setLoading(false);
+      });
   }, [id, navigate]);
+
+  // Get correct image src
+  const getHeroImg = () => {
+    if (usingDummy || isDemoOrphanage(orphanage)) {
+      const idx = DUMMY_ORPHANAGES.findIndex(o => o._id === orphanage._id);
+      return getDemoImage(idx >= 0 ? idx : 0);
+    }
+    return `http://localhost:3200/uploads/${orphanage.photo}`;
+  };
 
   if (loading) {
     return (
@@ -69,7 +106,7 @@ function DetailPage() {
 
       {/* Hero Image */}
       <div className="position-relative" style={{ height: "450px", overflow: "hidden" }}>
-        <img src={`http://localhost:3200/uploads/${orphanage.photo}`} alt={orphanage.name}
+        <img src={getHeroImg()} alt={orphanage.name}
           className="w-100 h-100" style={{ objectFit: "cover", filter: "brightness(0.7)" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,23,42,0.8) 0%, transparent 50%)" }}></div>
 
@@ -178,54 +215,56 @@ function DetailPage() {
 
           {/* Right Column */}
           <div className="col-lg-4">
-            {/* Donate Card */}
-            <div className="premium-card p-4 mb-4 animate-fade-in-up"
-              style={{ position: "sticky", top: "6rem", borderTop: "4px solid var(--hc-primary)" }}>
-              <div className="d-flex align-items-center gap-2 mb-2">
-                <Heart size={20} style={{ color: "var(--hc-danger)" }} />
-                <h4 className="fw-bold mb-0" style={{ fontFamily: "var(--hc-font-heading)", color: "var(--hc-navy)" }}>Make a Difference</h4>
-              </div>
-              <p style={{ color: "var(--hc-text-secondary)", fontSize: "0.9rem" }}>
-                Your contribution supports {orphanage.children} children living here.
-              </p>
-              <button onClick={handleDonateClick} className="gradient-btn w-100 d-flex align-items-center justify-content-center gap-2 mb-3"
-                style={{ padding: "14px" }}>
-                <Heart size={18} fill="currentColor" /> Donate Now
-              </button>
-              <p className="text-center small" style={{ color: "var(--hc-text-muted)" }}>Secure & Tax Deductible</p>
-
-              {/* Contact Info */}
-              <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--hc-border)" }}>
-                <h6 className="fw-bold mb-3" style={{ color: "var(--hc-navy)", fontFamily: "var(--hc-font-heading)" }}>Contact Information</h6>
-                {[
-                  { icon: <MapPin size={16} />, text: orphanage.address },
-                  { icon: <Mail size={16} />, text: orphanage.email },
-                  { icon: <Phone size={16} />, text: orphanage.phone }
-                ].map((item, i) => (
-                  <div key={i} className="d-flex align-items-center gap-3 mb-3">
-                    <div style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      background: "var(--hc-primary-subtle)", color: "var(--hc-primary)",
-                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                    }}>
-                      {item.icon}
-                    </div>
-                    <span style={{ color: "var(--hc-text-secondary)", fontSize: "0.88rem" }}>{item.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Verified Badge */}
-            <div className="verified-badge d-flex align-items-start gap-3 p-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-              <div style={{ flexShrink: 0 }}>
-                <Shield size={22} style={{ color: "#3b82f6" }} />
-              </div>
-              <div>
-                <h6 className="fw-bold mb-1" style={{ color: "#1e40af" }}>Verified Organization</h6>
-                <p className="small mb-0" style={{ color: "#3b82f6", lineHeight: 1.6 }}>
-                  This orphanage has been vetted for transparency and child safety standards.
+            <div style={{ position: "sticky", top: "6rem" }}>
+              {/* Donate Card */}
+              <div className="premium-card p-4 mb-4 animate-fade-in-up"
+                style={{ borderTop: "4px solid var(--hc-primary)" }}>
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <Heart size={20} style={{ color: "var(--hc-danger)" }} />
+                  <h4 className="fw-bold mb-0" style={{ fontFamily: "var(--hc-font-heading)", color: "var(--hc-navy)" }}>Make a Difference</h4>
+                </div>
+                <p style={{ color: "var(--hc-text-secondary)", fontSize: "0.9rem" }}>
+                  Your contribution supports {orphanage.children} children living here.
                 </p>
+                <button onClick={handleDonateClick} className="gradient-btn w-100 d-flex align-items-center justify-content-center gap-2 mb-3"
+                  style={{ padding: "14px" }}>
+                  <Heart size={18} fill="currentColor" /> Donate Now
+                </button>
+                <p className="text-center small" style={{ color: "var(--hc-text-muted)" }}>Secure & Tax Deductible</p>
+
+                {/* Contact Info */}
+                <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--hc-border)" }}>
+                  <h6 className="fw-bold mb-3" style={{ color: "var(--hc-navy)", fontFamily: "var(--hc-font-heading)" }}>Contact Information</h6>
+                  {[
+                    { icon: <MapPin size={16} />, text: orphanage.address },
+                    { icon: <Mail size={16} />, text: orphanage.email },
+                    { icon: <Phone size={16} />, text: orphanage.phone }
+                  ].map((item, i) => (
+                    <div key={i} className="d-flex align-items-center gap-3 mb-3">
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        background: "var(--hc-primary-subtle)", color: "var(--hc-primary)",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                      }}>
+                        {item.icon}
+                      </div>
+                      <span style={{ color: "var(--hc-text-secondary)", fontSize: "0.88rem" }}>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Verified Badge */}
+              <div className="verified-badge d-flex align-items-start gap-3 p-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+                <div style={{ flexShrink: 0 }}>
+                  <Shield size={22} style={{ color: "#3b82f6" }} />
+                </div>
+                <div>
+                  <h6 className="fw-bold mb-1" style={{ color: "#1e40af" }}>Verified Organization</h6>
+                  <p className="small mb-0" style={{ color: "#3b82f6", lineHeight: 1.6 }}>
+                    This orphanage has been vetted for transparency and child safety standards.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

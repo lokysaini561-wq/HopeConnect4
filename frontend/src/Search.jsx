@@ -3,11 +3,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { MapPin, ChevronRight, Users, AlertCircle, Search } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { DUMMY_ORPHANAGES, getDemoImage } from "./dummyData";
 import "./App.css";
 
 function SearchPage() {
   const [orphanages, setOrphanages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [usingDummy, setUsingDummy] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,12 +18,46 @@ function SearchPage() {
   useEffect(() => {
     if (query) {
       setLoading(true);
+      setUsingDummy(false);
       fetch(`http://localhost:3200/search?q=${query}`)
         .then((res) => res.json())
-        .then((data) => { setOrphanages(data); setLoading(false); })
-        .catch((err) => { console.log(err); setLoading(false); });
+        .then((data) => {
+          if (data && data.length > 0) {
+            setOrphanages(data);
+          } else {
+            // API returned empty — show filtered dummy data
+            const filtered = DUMMY_ORPHANAGES.filter(o =>
+              o.name.toLowerCase().includes(query.toLowerCase()) ||
+              o.location.toLowerCase().includes(query.toLowerCase()) ||
+              o.address.toLowerCase().includes(query.toLowerCase())
+            );
+            setOrphanages(filtered.length > 0 ? filtered : DUMMY_ORPHANAGES);
+            setUsingDummy(true);
+          }
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.log("API unavailable, using dummy data:", err.message);
+          // Backend down — show filtered dummy data
+          const filtered = DUMMY_ORPHANAGES.filter(o =>
+            o.name.toLowerCase().includes(query.toLowerCase()) ||
+            o.location.toLowerCase().includes(query.toLowerCase()) ||
+            o.address.toLowerCase().includes(query.toLowerCase())
+          );
+          setOrphanages(filtered.length > 0 ? filtered : DUMMY_ORPHANAGES);
+          setUsingDummy(true);
+          setLoading(false);
+        });
     }
   }, [query]);
+
+  // Resolve the correct image source
+  const getImgSrc = (item, index) => {
+    if (usingDummy || item._id?.startsWith?.("demo-")) {
+      return getDemoImage(index);
+    }
+    return `http://localhost:3200/uploads/${item.photo}`;
+  };
 
   // Skeleton loader
   const SkeletonCard = () => (
@@ -94,7 +130,7 @@ function SearchPage() {
 
                     {/* Image */}
                     <div className="card-img-wrapper">
-                      <img src={`http://localhost:3200/uploads/${item.photo}`} alt={item.name} />
+                      <img src={getImgSrc(item, index)} alt={item.name} />
                     </div>
 
                     {/* Body */}

@@ -3,19 +3,17 @@ import { Heart, Home, Package, Smile, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { DUMMY_ORPHANAGES, DUMMY_DONATIONS, DUMMY_DONATION_CATEGORIES, DUMMY_TESTIMONIALS } from "./dummyData";
 import "./App.css";
 
 const ImpactPage = () => {
   const [donationCategorie, setDonationCategorie] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
-  const orphanages = [
-    { id: 1, name: "Sunshine Home" },
-    { id: 2, name: "Hope Orphanage" },
-    { id: 3, name: "Bright Future Home" }
-  ];
+  const orphanages = DUMMY_ORPHANAGES.slice(0, 6);
 
-  const totalDonationsCount = donations.length;
+  const totalDonationsCount = donations.length || 10;
   const livesImpacted = totalDonationsCount * 3 + 120;
   const itemsDistributed = totalDonationsCount * 12 + 540;
 
@@ -77,16 +75,38 @@ const ImpactPage = () => {
           if (!finalData.find(d => d.name === cat)) finalData.push({ name: cat, value: 0 });
         });
         if (otherTotal > 0) finalData.push({ name: "Other Supplies", value: otherTotal });
-        setDonationCategorie(finalData);
+        // If all values are 0, use dummy data anyway
+        const hasRealData = finalData.some(d => d.value > 0);
+        setDonationCategorie(hasRealData ? finalData : DUMMY_DONATION_CATEGORIES);
       })
-      .catch(err => console.log(err));
+      .catch(err => {
+        console.log("Using dummy categories:", err.message);
+        setDonationCategorie(DUMMY_DONATION_CATEGORIES);
+      });
   }, []);
 
   useEffect(() => {
     fetch("http://localhost:3200/recent-donations")
       .then(res => res.json())
-      .then(data => setDonations(data))
-      .catch(err => console.log(err));
+      .then(data => {
+        if (data && data.length > 0) {
+          setDonations(data);
+        } else {
+          setDonations(DUMMY_DONATIONS);
+        }
+      })
+      .catch(err => {
+        console.log("Using dummy donations:", err.message);
+        setDonations(DUMMY_DONATIONS);
+      });
+  }, []);
+
+  // Rotate testimonials
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTestimonial(prev => (prev + 1) % DUMMY_TESTIMONIALS.length);
+    }, 6000);
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -198,7 +218,7 @@ const ImpactPage = () => {
             </div>
           </div>
 
-          {/* Success Story */}
+          {/* Success Story — rotating testimonials */}
           <div className="testimonial-card animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
             <div className="position-relative text-center" style={{ zIndex: 1 }}>
               <div className="d-inline-flex align-items-center gap-2 px-3 py-2 mb-4"
@@ -209,12 +229,23 @@ const ImpactPage = () => {
                 ✨ Real Story
               </div>
               <h3 className="fw-bold mb-3" style={{ fontFamily: "var(--hc-font-heading)" }}>A Story of Hope</h3>
-              <p className="lead fst-italic mb-4" style={{ color: "rgba(255,255,255,0.8)", maxWidth: 600, margin: "0 auto", lineHeight: 1.8 }}>
-                "Thanks to the winter clothes donation drive organized last month,
-                45 children are now warm and comfortable for the upcoming season."
+              <p className="lead fst-italic mb-4" style={{ color: "rgba(255,255,255,0.8)", maxWidth: 600, margin: "0 auto", lineHeight: 1.8, minHeight: "80px", transition: "opacity 0.5s ease" }}>
+                "{DUMMY_TESTIMONIALS[activeTestimonial].quote}"
               </p>
               <div style={{ color: "var(--hc-primary-light)", fontWeight: 700 }}>
-                — Sarah Jenkins, Orphanage Director
+                — {DUMMY_TESTIMONIALS[activeTestimonial].author}, {DUMMY_TESTIMONIALS[activeTestimonial].role}
+              </div>
+              {/* Dots */}
+              <div className="d-flex justify-content-center gap-2 mt-3">
+                {DUMMY_TESTIMONIALS.map((_, i) => (
+                  <div key={i} onClick={() => setActiveTestimonial(i)}
+                    style={{
+                      width: i === activeTestimonial ? 24 : 8, height: 8,
+                      borderRadius: 4, cursor: "pointer",
+                      background: i === activeTestimonial ? "var(--hc-primary-light)" : "rgba(255,255,255,0.3)",
+                      transition: "all 0.3s ease"
+                    }} />
+                ))}
               </div>
             </div>
           </div>

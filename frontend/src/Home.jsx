@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Container, Row, Col } from "react-bootstrap";
-import { ArrowRight, ShieldCheck, Users, MapPin, Heart, TrendingUp, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Users, MapPin, Heart, TrendingUp, Sparkles, ChevronRight, Clock } from "lucide-react";
 import "./App.css";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { DUMMY_ORPHANAGES, DUMMY_DONATIONS, DUMMY_TESTIMONIALS, ORPHANAGE_IMAGES } from "./dummyData";
 
 const Home = () => {
   const [hover, setHover] = useState(false);
+  const navigate = useNavigate();
 
   // Animated counter
   const useCounter = (target, duration = 2000) => {
@@ -28,6 +30,11 @@ const Home = () => {
   const orphanagesCount = useCounter(50);
   const childrenCount = useCounter(1200);
   const donationsCount = useCounter(3500);
+
+  // Featured orphanages (first 3)
+  const featured = DUMMY_ORPHANAGES.slice(0, 3);
+  // Recent donations (first 5)
+  const recentDonations = DUMMY_DONATIONS.slice(0, 5);
 
   return (
     <>
@@ -153,6 +160,153 @@ const Home = () => {
                     </div>
                     <h5 className="fw-bold mb-2" style={{ fontFamily: "var(--hc-font-heading)" }}>{card.title}</h5>
                     <p style={{ color: "var(--hc-text-secondary)", fontSize: "0.95rem", lineHeight: 1.7 }}>{card.desc}</p>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </Container>
+        </section>
+
+        {/* ===== FEATURED ORPHANAGES ===== */}
+        <section className="py-5">
+          <Container className="py-4">
+            <div className="section-heading">
+              <h2>Featured Orphanages</h2>
+              <p>These verified centers are actively seeking donations and support.</p>
+            </div>
+
+            <Row className="g-4">
+              {featured.map((item, index) => (
+                <Col md={4} key={item._id}>
+                  <div className="orphanage-card h-100 animate-fade-in-up"
+                    style={{ animationDelay: `${index * 0.15}s`, cursor: "pointer" }}
+                    onClick={() => navigate(`/view/${item._id}`)}>
+
+                    <div className="card-img-wrapper">
+                      <img src={ORPHANAGE_IMAGES[index]} alt={item.name} />
+                      <div className="position-absolute top-0 end-0 m-3">
+                        <span className="px-2 py-1 d-flex align-items-center gap-1"
+                          style={{
+                            background: "rgba(34,197,94,0.9)", color: "#fff",
+                            borderRadius: "var(--hc-radius-full)", fontSize: "0.72rem",
+                            fontWeight: 600, backdropFilter: "blur(4px)"
+                          }}>
+                          <ShieldCheck size={12} /> Verified
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 d-flex flex-column" style={{ flex: 1 }}>
+                      <h5 className="fw-bold mb-2" style={{ fontFamily: "var(--hc-font-heading)", color: "var(--hc-navy)" }}>
+                        {item.name}
+                      </h5>
+                      <p className="d-flex align-items-center gap-1 mb-2"
+                        style={{ color: "var(--hc-text-muted)", fontSize: "0.85rem" }}>
+                        <MapPin size={14} /> {item.location}
+                      </p>
+
+                      <div className="d-flex gap-2 mb-3">
+                        <span className="d-inline-flex align-items-center gap-1 px-2 py-1"
+                          style={{
+                            background: "rgba(34,197,94,0.08)", borderRadius: "var(--hc-radius-full)",
+                            fontSize: "0.78rem", color: "#16a34a", fontWeight: 600
+                          }}>
+                          <Users size={12} /> {item.children} Children
+                        </span>
+                        <span className="d-inline-flex align-items-center gap-1 px-2 py-1"
+                          style={{
+                            background: "rgba(59,130,246,0.08)", borderRadius: "var(--hc-radius-full)",
+                            fontSize: "0.78rem", color: "#3b82f6", fontWeight: 600
+                          }}>
+                          <Clock size={12} /> Est. {item.fyear}
+                        </span>
+                      </div>
+
+                      <p style={{ color: "var(--hc-text-secondary)", fontSize: "0.88rem", lineHeight: 1.7, flex: 1 }}>
+                        {item.des?.slice(0, 110)}...
+                      </p>
+
+                      <div style={{ borderTop: "1px solid var(--hc-border-light)", paddingTop: 14, marginTop: 10 }}
+                        className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <small style={{ color: "var(--hc-text-muted)", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>
+                            Urgent Need
+                          </small>
+                          <div className="badge-urgency-high" style={{ fontSize: "0.78rem" }}>
+                            {item.urgentNeeds?.[0]?.item}
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 36, height: 36, borderRadius: "50%",
+                            background: "var(--hc-primary-subtle)", color: "var(--hc-primary)"
+                          }}>
+                          <ChevronRight size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+
+            <div className="text-center mt-4">
+              <Link to="/location" className="gradient-btn-dark d-inline-flex align-items-center gap-2 text-decoration-none"
+                style={{ padding: "12px 32px" }}>
+                View All Orphanages <ArrowRight size={16} />
+              </Link>
+            </div>
+          </Container>
+        </section>
+
+        {/* ===== RECENT DONATIONS TICKER ===== */}
+        <section className="py-5" style={{ background: "var(--hc-surface-alt)" }}>
+          <Container className="py-2">
+            <div className="section-heading">
+              <h2>Recent Donations</h2>
+              <p>See the latest contributions from generous donors like you.</p>
+            </div>
+
+            <Row className="g-3 justify-content-center">
+              {recentDonations.map((d, i) => (
+                <Col md={6} lg={4} key={i}>
+                  <div className="premium-card p-3 h-100 animate-fade-in-up" style={{ animationDelay: `${i * 0.1}s` }}>
+                    <div className="d-flex align-items-center gap-3">
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                        background: d.donationtype === "Food" ? "rgba(34,197,94,0.1)" :
+                          d.donationtype === "Clothes" ? "rgba(59,130,246,0.1)" :
+                            d.donationtype === "Education" ? "rgba(245,158,11,0.1)" :
+                              d.donationtype === "Shelter" ? "rgba(139,92,246,0.1)" : "rgba(100,116,139,0.1)",
+                        color: d.donationtype === "Food" ? "#22c55e" :
+                          d.donationtype === "Clothes" ? "#3b82f6" :
+                            d.donationtype === "Education" ? "#f59e0b" :
+                              d.donationtype === "Shelter" ? "#8b5cf6" : "#64748b",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 800, fontSize: "1.1rem"
+                      }}>
+                        {d.donationtype === "Food" ? "🍚" :
+                          d.donationtype === "Clothes" ? "👕" :
+                            d.donationtype === "Education" ? "📚" :
+                              d.donationtype === "Shelter" ? "🏠" : "📦"}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "0.88rem" }}>
+                          <span className="fw-semibold" style={{ color: "var(--hc-navy)" }}>{d.name}</span>
+                          <span style={{ color: "var(--hc-text-muted)" }}> donated </span>
+                          <span className="fw-semibold" style={{ color: "var(--hc-primary)" }}>{d.quan}</span>
+                        </div>
+                        <div className="d-flex align-items-center gap-2 mt-1">
+                          <span style={{ fontSize: "0.75rem", color: "var(--hc-text-muted)" }}>
+                            {d.quantity}
+                          </span>
+                          <span style={{ fontSize: "0.6rem", color: "var(--hc-text-muted)" }}>•</span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--hc-text-muted)" }}>
+                            {new Date(d.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </Col>
               ))}
